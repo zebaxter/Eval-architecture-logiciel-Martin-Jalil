@@ -2,6 +2,12 @@ const express = require('express');
 const data = require('./data');
 const Match = require('./domain/match');
 const { recalculateRanking } = require('./domain/ranked');
+const InMemoryTeamRepository = require('./infrastructure/inMemoryTeamRepository');
+const InMemoryMatchRepository = require('./infrastructure/inMemoryMatchRepository');
+const InMemoryRankingRepository = require('./infrastructure/inMemoryRankingRepository');
+const ConsoleNotifier = require('./infrastructure/consoleNotifier');
+const { ValidationError, NotFoundError, ConflictError } = require('./domain/errors');
+
 
 const app = express();
 app.use(express.json());
@@ -17,8 +23,8 @@ async function notifyTeams(match) {
   );
 }
 
-app.get('/teams', (req, res) => {
-  res.json(data.teams);
+app.get('/teams', async (req, res) => {
+  res.json(await listTeams.execute());
 });
 
 app.get('/matches', (req, res) => {
@@ -79,8 +85,11 @@ app.use((error, req, res, next) => {
   if (error.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Le corps de la requête doit être un JSON valide.' });
   }
-  const status = error.status >= 400 && error.status < 500 ? error.status : 500;
-  res.status(status).json({ error: status === 500 ? 'Erreur interne du serveur.' : error.message });
+  if (error instanceof ValidationError) return res.status(400).json({ error: error.message });
+  if (error instanceof NotFoundError) return res.status(404).json({ error: error.message });
+  if (error instanceof ConflictError) return res.status(409).json({ error: error.message });
+  console.error(error);
+  res.status(500).json({ error: 'Erreur interne du serveur.' });
 });
 
 data.ranking = recalculateRanking(data.teams, data.matches);
