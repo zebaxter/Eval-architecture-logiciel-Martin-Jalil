@@ -4,7 +4,7 @@ Martin Mixte --> zebaxter
 
 # Contraintes choisies et architecture
 
-Contraintes **C (indépendance technologique)** et **D (diversification des interfaces)**, traitées avec une Clean Architecture. Schéma et justification : [docs/architecture.md](docs/architecture.md).
+Contraintes **C (indépendance technologique)** et **D (diversification des interfaces)**, traitées avec une **Clean Architecture**.
 
 # Arena Tournament
 
