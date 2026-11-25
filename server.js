@@ -5,46 +5,7 @@ const { recalculateRanking } = require('./domain/ranked');
 
 const app = express();
 app.use(express.json());
-
-function recalculateRanking() {
-  const standings = data.teams.map((team) => ({
-    teamId: team.id,
-    played: 0,
-    wins: 0,
-    draws: 0,
-    losses: 0,
-    points: 0,
-  }));
-
-  for (const match of data.matches) {
-    if (match.status !== 'completed') continue;
-
-    const team1 = standings.find((entry) => entry.teamId === match.team1Id);
-    const team2 = standings.find((entry) => entry.teamId === match.team2Id);
-    team1.played += 1;
-    team2.played += 1;
-
-    if (match.scoreTeam1 === match.scoreTeam2) {
-      team1.draws += 1;
-      team2.draws += 1;
-      team1.points += 1;
-      team2.points += 1;
-    } else {
-      const winner = match.scoreTeam1 > match.scoreTeam2 ? team1 : team2;
-      const loser = winner === team1 ? team2 : team1;
-      winner.wins += 1;
-      winner.points += 3;
-      loser.losses += 1;
-    }
-  }
-
-  standings.sort((first, second) => {
-    const firstName = data.teams.find((team) => team.id === first.teamId).name;
-    const secondName = data.teams.find((team) => team.id === second.teamId).name;
-    return second.points - first.points || firstName.localeCompare(secondName, 'fr');
-  });
-  data.ranking = standings;
-}
+data.matches = data.matches.map((entry) => new Match(entry));
 
 async function notifyTeams(match) {
   await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -74,18 +35,11 @@ app.post('/matches', (req, res) => {
   if (!team1 || !team2) {
     return res.status(404).json({ error: 'Une des équipes est introuvable.' });
   }
-  if (team1Id === team2Id) {
-    return res.status(400).json({ error: 'Une équipe ne peut pas jouer contre elle-même.' });
-  }
-
-  const match = {
-    id: Math.max(0, ...data.matches.map((entry) => entry.id)) + 1,
+  const match = Match.create(
+    Math.max(0, ...data.matches.map((entry) => entry.id)) + 1,
     team1Id,
     team2Id,
-    scoreTeam1: null,
-    scoreTeam2: null,
-    status: 'pending',
-  };
+  );
   data.matches.push(match);
   res.status(201).json(match);
 });
@@ -108,7 +62,7 @@ app.post('/matches/:id/result', async (req, res) => {
   match.scoreTeam1 = scoreTeam1;
   match.scoreTeam2 = scoreTeam2;
   match.status = 'completed';
-  recalculateRanking();
+  data.ranking = recalculateRanking(data.teams, data.matches);
   await notifyTeams(match);
   res.json(match);
 });
@@ -129,7 +83,7 @@ app.use((error, req, res, next) => {
   res.status(status).json({ error: status === 500 ? 'Erreur interne du serveur.' : error.message });
 });
 
-recalculateRanking();
+data.ranking = recalculateRanking(data.teams, data.matches);
 app.listen(3000, () => {
   console.log('Arena Tournament disponible sur http://localhost:3000');
 });
