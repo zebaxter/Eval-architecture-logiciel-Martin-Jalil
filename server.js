@@ -1,5 +1,7 @@
 const express = require('express');
 const data = require('./data');
+const Match = require('./domain/match');
+const { recalculateRanking } = require('./domain/ranked');
 
 const app = express();
 app.use(express.json());
