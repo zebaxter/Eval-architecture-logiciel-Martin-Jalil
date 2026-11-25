@@ -5,7 +5,8 @@
   "description": "API de gestion d'un tournoi de jeux vidéo",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "cli": "node interfaces/cli/cli.js"
   },
   "engines": {
     "node": ">=22"
