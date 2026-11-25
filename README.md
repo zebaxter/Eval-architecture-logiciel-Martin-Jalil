@@ -2,6 +2,10 @@
 Jalil mzili --> Jalil3004
 Martin Mixte --> zebaxter
 
+# Contraintes choisies et architecture
+
+Contraintes **C (indépendance technologique)** et **D (diversification des interfaces)**, traitées avec une Clean Architecture. Schéma et justification : [docs/architecture.md](docs/architecture.md).
+
 # Arena Tournament
 
 API REST de gestion d'un tournoi de jeux vidéo : consultation des équipes et des matchs, création de matchs, enregistrement des résultats et consultation du classement. L'application gère un seul tournoi, sans interface graphique ni authentification.
