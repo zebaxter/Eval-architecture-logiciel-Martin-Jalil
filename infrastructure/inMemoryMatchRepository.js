@@ -1,4 +1,5 @@
 const MatchRepository = require('../application/port/matchRepository');
+const Match = require('../domain/match');
 
 /**
  * Adaptateur : stockage des matchs en mémoire.
@@ -9,7 +10,8 @@ class InMemoryMatchRepository extends MatchRepository {
    */
   constructor(matches = []) {
     super();
-    this.matches = [...matches];
+    // Les données brutes sont converties en entités du domaine
+    this.matches = matches.map((match) => (match instanceof Match ? match : new Match(match)));
   }
 
   async findAll() {
