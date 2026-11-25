@@ -6,6 +6,32 @@ Martin Mixte --> zebaxter
 
 Contraintes **C (indépendance technologique)** et **D (diversification des interfaces)**, traitées avec une **Clean Architecture**.
 
+## Problèmes de l'application de départ
+
+- Tout était dans `server.js` : routes Express, règles métier et accès au tableau `data` mélangés.
+- Changer de stockage ou de framework web obligeait à réécrire le code métier (C).
+- Ajouter une CLI obligeait à copier les règles métier déjà écrites dans les routes (D).
+
+## Notre solution
+
+Le domaine et les use cases ne dépendent que de ports (interfaces) : changer de stockage ou de framework web revient à écrire un nouvel adaptateur dans `infrastructure/` ou `interfaces/` et à le brancher dans `main/container.js`, sans toucher aux règles métier (C).
+L'API REST et la CLI sont deux adaptateurs qui appellent les mêmes use cases, elles évoluent donc indépendamment sans dupliquer de code métier (D).
+
+```
+   [ API REST (Express) ]      [ CLI ]          interfaces/
+             \                  /
+              v                v
+           [ Use cases ]                        application/usecases/
+            |          |
+            v          v
+     [ Domaine ]   [ Ports ]                    domain/  application/port/
+                       ^
+                       | implémente
+     [ Repositories en mémoire, Notifier ]      infrastructure/
+
+   main/container.js assemble le tout (injection des dépendances)
+```
+
 # Arena Tournament
 
 API REST de gestion d'un tournoi de jeux vidéo : consultation des équipes et des matchs, création de matchs, enregistrement des résultats et consultation du classement. L'application gère un seul tournoi, sans interface graphique ni authentification.
@@ -27,6 +53,36 @@ npm start
 ```
 
 Le serveur écoute sur `http://localhost:3000`. Utiliser `Ctrl+C` pour l'arrêter.
+
+## Utiliser la CLI
+
+```bash
+npm run cli -- teams
+npm run cli -- matches
+npm run cli -- create-match 1 6
+npm run cli -- result 4 3 1
+npm run cli -- ranking
+```
+
+## Vérifier les contraintes
+
+**C - Indépendance technologique**
+- `domain/` et `application/` n'importent ni Express ni le stockage (vérifiable avec `grep -r "require" domain application`).
+- Le stockage et le notifier sont choisis uniquement dans `main/container.js`. Pour changer de base de données, il suffit d'écrire une classe qui implémente le port (ex. `MatchRepository`) et de la brancher là.
+- Express n'est utilisé que dans `interfaces/http/app.js`. Pour changer de framework, on remplace ce seul fichier.
+
+**D - Diversification des interfaces**
+- Faire la même opération des deux côtés, on obtient le même résultat et les mêmes erreurs :
+  - `npm run cli -- result 1 2 0` → `Erreur : Le résultat de ce match a déjà été enregistré.`
+  - `POST /matches/1/result` → `409` avec le même message.
+- `interfaces/http/app.js` et `interfaces/cli/cli.js` ne contiennent aucune règle métier : ils appellent seulement les use cases.
+
+## Limites
+
+- Les données sont toujours en mémoire : elles sont perdues au redémarrage.
+- La CLI et l'API ne partagent pas les données (deux processus séparés), et chaque commande CLI repart des données initiales.
+- Un seul adaptateur de stockage existe : le changement de persistance est rendu possible mais n'est pas démontré par une deuxième implémentation.
+- La notification reste bloquante (environ 3 secondes) : ce n'était pas une des contraintes choisies.
 
 ## Routes
 
