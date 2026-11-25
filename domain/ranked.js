@@ -10,7 +10,6 @@ function recalculateRanking(teams,matches) {
 
   for (const match of matches) {
     if (match.status !== 'completed') continue;
-
     const team1 = standings.find((entry) => entry.teamId === match.team1Id);
     const team2 = standings.find((entry) => entry.teamId === match.team2Id);
     team1.played += 1;
@@ -37,3 +36,4 @@ function recalculateRanking(teams,matches) {
   });
   return standings;
 }
+module.exports = { recalculateRanking };
